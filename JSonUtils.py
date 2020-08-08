@@ -1,4 +1,7 @@
-class JSonSaver:
+import json
+
+
+class JSonUtils:
     def __init__(self):
         pass
 

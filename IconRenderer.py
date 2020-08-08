@@ -14,7 +14,7 @@ class IconRenderer:
         self.__width = self.__height = 512
         self.__thickness = self.__width / 10
         self.__goldenRatio = 0.666
-        self.__scale = 20
+        self.__scale = 48
 
         self.__ratio = self.__width * self.__goldenRatio
         self.__invertedRatio = self.__width * (1 - self.__goldenRatio)
@@ -62,7 +62,8 @@ class IconRenderer:
             icon = self.__loadIcon("plus.svg")
             if icon:
                 return icon
-        return QtGui.QPixmap(":/kAlertQuestionIcon.png")
+        return QtGui.QPixmap(":/greasePencilHelp.png")
+        # return QtGui.QPixmap(":/greasePencilHelp.png").scaledToWidth(self.__scale)
 
     def __loadIcon(self, path):
         if path in self.__loadedIcons:
