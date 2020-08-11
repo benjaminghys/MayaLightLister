@@ -1,3 +1,5 @@
+import time
+
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtWidgets import QSizePolicy, QTableWidget, QTableWidgetItem
 import maya.OpenMayaUI as MayaUI
@@ -11,13 +13,15 @@ import IconRenderer as ICO
 import LightStatus as LS
 import LightLister as LL
 
+from OptimizationTests import timeIt
+
 
 class AttributeBox(QtWidgets.QLineEdit):
     intField = 0
     floatField = 1
     boolField = 2
 
-    def __init__(self, fieldType, value=0, parent=None):
+    def __init__(self, fieldType, value=0.0, parent=None):
         super(AttributeBox, self).__init__(parent)
 
         self.setToolTip(
@@ -91,15 +95,15 @@ class AttributeBox(QtWidgets.QLineEdit):
         self.setValue(self.value())
 
     def setSteps(self, steps):
-        if self.fieldType == AttributeBox.intField:
+        if self.fieldType == self.intField:
             self.steps = int(max(steps, 1))
         else:
             self.steps = steps
 
     def value(self):
-        if self.fieldType == AttributeBox.intField:
+        if self.fieldType == self.intField:
             return int(self.text())
-        if self.fieldType == AttributeBox.floatField:
+        if self.fieldType == self.floatField:
             return float(self.text())
         return int(self.text())
 
@@ -110,13 +114,15 @@ class AttributeBox(QtWidgets.QLineEdit):
         if self.max is not None:
             value = min(value, self.max)
 
-        if self.fieldType == AttributeBox.intField:
+        if not hasattr(self, "fieldType"):
+            return
+        if self.fieldType == self.intField:
             self.setText(str(int(value)))
             return
-        if self.fieldType == AttributeBox.floatField:
+        if self.fieldType == self.floatField:
             self.setText(str(float(value)))
             return
-        if self.fieldType == AttributeBox.boolField:
+        if self.fieldType == self.boolField:
             value = bool(round(value))
             if value:
                 self.setText("on")
@@ -159,6 +165,7 @@ class LightListerWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         menuBar = QtWidgets.QMenuBar()
         self.lightList = QtWidgets.QTableWidget()
         self.lightSBar = QtWidgets.QLineEdit()
+        self.attributeList = QtWidgets.QTableWidget()
         self.attributeSBar = QtWidgets.QLineEdit()
         self.splitter = QtWidgets.QSplitter()
 
@@ -202,8 +209,8 @@ class LightListerWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.lightList.autoFillBackground = True
         self.lightList.setIconSize(QtCore.QSize(15, 15))
         
-        # self.__initTable(self.attributeList, 2)
-        # self.attributeList.setMinimumWidth(120)
+        self.__initTable(self.attributeList, 2)
+        self.attributeList.setMinimumWidth(120)
 
         self.lightSBar.setPlaceholderText("Light filter")
         self.attributeSBar.setPlaceholderText("Attribute filter")
@@ -244,11 +251,12 @@ class LightListerWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.setCentralWidget(self.centerWidget)
         self.resizeEvent()
         self.updateLights()
-        # self.updateAttributes()
+        self.updateAttributes()
 
         if cmds.window("tempWindow", ex=True):
             cmds.deleteUI("tempWindow")
 
+    @timeIt
     def __deleteInstances(self):
         item = self.__class__.toolName + 'WorkspaceControl'
         if cmds.workspaceControl(item, ex=True, q=True):
@@ -270,7 +278,7 @@ class LightListerWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
     def event(self, event, *args, **kwargs):
-        if event is None:
+        if event is None or self is None:
             return False
         if event.type() == QtCore.QEvent.WindowActivate:
             self.updateLights()
@@ -313,7 +321,9 @@ class LightListerWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.lightList.setItem(index, 1, name)
         self.lightList.setItem(index, 2, statusIcon)
 
+    @timeIt
     def updateLights(self):
+        time.sleep(1)
         selection = self.lightList.selectedItems()
         selection = [selection[i].text() for i in range(1, len(selection), 3)]
 
@@ -338,7 +348,8 @@ class LightListerWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.lightList.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.lightList.setSortingEnabled(True)
         self.updateLightFilter()
-        
+
+    @timeIt
     def updateAttributes(self):
         selection = self.attributeList.selectedItems()
         selection = [selection[i].text() for i in range(0, len(selection), 2)]
@@ -346,9 +357,12 @@ class LightListerWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.attributeList.setRowCount(0)
         self.attributeList.setRowCount(1)
 
-        item = QTableWidgetItem()
+        item = QTableWidgetItem("temp")
+        scroller = AttributeBox(AttributeBox.floatField, 1.0)
         self.attributeList.setItem(0, 0, item)
+        self.attributeList.setCellWidget(0, 1, scroller)
 
+    @timeIt
     def updateLightFilter(self):
         filterText = self.lightSBar.text().lower()
         if not filterText or len(filterText) == 0:
@@ -391,3 +405,4 @@ class LightListerWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
 
 lightLister = LightListerWindow()
 lightLister.show(dockable=True, retain=False)
+
